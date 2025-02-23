@@ -1,0 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Doto:wght@100..900&display=swap');
+@import "tailwindcss";
+
+@theme{
+    --font-doto: "Doto","sans-serif";
+}
