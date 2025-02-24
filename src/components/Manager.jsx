@@ -164,7 +164,7 @@ const Manager = () => {
                         return (
                           <tr key={index}>
                             <th scope="row">{index + 1}</th>
-                            <td>{item.url}</td>
+                            <td><a href={`https://${item.url}`} target="_blank">{item.url}</a></td>
                             <td>{item.username}</td>
                             <td>{item.password}</td>
                             <td className="flex justify-center" >
