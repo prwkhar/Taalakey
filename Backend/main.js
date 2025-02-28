@@ -1,10 +1,7 @@
-//version main
 require('dotenv').config();
 const cors = require("cors");
-
 const express = require('express');
 const bodyParser = require('body-parser');
-const { MongoClient } = require('mongodb');
 
 const app = express();
 const port = 3000;
@@ -13,41 +10,19 @@ const port = 3000;
 app.use(bodyParser.json());
 app.use(cors());
 
-// MongoDB Connection
-const dbName = 'tallakey';
-const url = process.env.MONGOURI;
-const client = new MongoClient(url);
-
-async function connectDB() {
-  try {
-    await client.connect();
-    console.log("✅ Connected to MongoDB");
-  } catch (error) {
-    console.error("❌ MongoDB connection error:", error);
-  }
-}
-connectDB();
+// In-memory storage (temporary)
+let passwords = [];
 
 // Get all stored passwords
-app.get('/', async (req, res) => {
-  try {
-    const db = client.db(dbName);
-    const collection = db.collection('passwords');
-    const findResult = await collection.find({}).toArray();
-    res.json(findResult);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch passwords" });
-  }
+app.get('/', (req, res) => {
+  res.json(passwords);
 });
 
 // Save a new password
-app.post('/', async (req, res) => {
+app.post('/', (req, res) => {
   try {
-    const db = client.db(dbName);
-    const collection = db.collection('passwords');
     const newPassword = req.body;
-
-    await collection.insertOne(newPassword);
+    passwords.push(newPassword);
 
     res.json({ message: "Password saved successfully!", data: newPassword });
   } catch (error) {
@@ -55,14 +30,16 @@ app.post('/', async (req, res) => {
   }
 });
 
-//delet a password
-app.delete('/', async (req, res) => {
-    const db = client.db(dbName);
-    const collection = db.collection('passwords');
+// Delete a password
+app.delete('/', (req, res) => {
+  try {
     const { id } = req.body;
-    const result = await collection.deleteOne({ _id: id });
+    passwords = passwords.filter(item => item.id !== id);
 
-    res.json({ message: "Password deleted successfully!"});
+    res.json({ message: "Password deleted successfully!" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete password" });
+  }
 });
 
 app.listen(port, () => {

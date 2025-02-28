@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useMemo } from "react";
 
 const Manager = () => {
   const [form, setForm] = useState({
@@ -10,44 +9,45 @@ const Manager = () => {
   });
 
   const [passwordArray, setPasswordArray] = useState([]);
+  const [editId, setEditId] = useState(null);
+
+  // Load passwords from localStorage on first render
   useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://cdn.lordicon.com/lordicon.js";
-    script.async = true;
-    document.body.appendChild(script);
-    return () => {
-      document.body.removeChild(script);
-    };
+    const savedPasswords = JSON.parse(localStorage.getItem("passwords")) || [];
+    setPasswordArray(savedPasswords);
   }, []);
 
+  // Save passwords to localStorage whenever passwordArray changes
   useEffect(() => {
-    const fetchPasswords = async () => {
-      try {
-        const response = await fetch("http://localhost:3000/");
+    localStorage.setItem("passwords", JSON.stringify(passwordArray));
+  }, [passwordArray]);
 
-        if (!response.ok) throw new Error("Failed to fetch passwords");
-
-        const passy = await response.json();
-        setPasswordArray(passy);
-      } catch (error) {
-        console.error("Error fetching passwords:", error);
-      }
-    };
-
-    fetchPasswords();
-  }, []);
-
-  const savePass = async () => {
-    const response = await fetch("http://localhost:3000/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    if (response.ok) {
-      setPasswordArray([...passwordArray, form]);
-      console.log("password saved");
+  const savePass = () => {
+    if (editId) {
+      // Update existing password
+      const updatedPasswords = passwordArray.map((item) =>
+        item.id === editId ? { ...form, id: editId } : item
+      );
+      setPasswordArray(updatedPasswords);
+      setEditId(null);
     } else {
-      console.log("password not saved");
+      // Save new password
+      const newPass = { ...form, id: Date.now() };
+      setPasswordArray([...passwordArray, newPass]);
+    }
+
+    setForm({ url: "", username: "", password: "", showpassword: false });
+  };
+
+  const deletePass = (id) => {
+    setPasswordArray(passwordArray.filter((item) => item.id !== id));
+  };
+
+  const editPass = (id) => {
+    const selectedPass = passwordArray.find((item) => item.id === id);
+    if (selectedPass) {
+      setForm(selectedPass);
+      setEditId(id);
     }
   };
 
@@ -65,32 +65,19 @@ const Manager = () => {
     }));
   };
 
-  const deletepass = async (id) => {
-    try {
-      const response = await fetch("http://localhost:3000/", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ id }),
-      });
-      const data = await response.json(); 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to delete password");
-      }
-      console.log("Success:", data.message);
-    } catch (error) {
-      console.error("Error deleting password:", error.message);
-    }
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    alert(`Copied: ${text}`);
   };
+
   return (
     <>
-      <div>
-        <div className="fixed top-0 z-[-2] min-h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#00091d_1px)] bg-[size:20px_20px]"></div>
-      </div>
+      {/* Background */}
+      <div className="fixed top-0 z-[-2] min-h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#00091d_1px)] bg-[size:20px_20px]"></div>
 
-      <div className="mx-30 my-16 bg-amber-700/50 p-2 rounded-2xl flex flex-col items-center">
-        <h1 className="text-4xl font-bold text-center z-10">
+      <div className="mx-30 my-16 bg-amber-700/50 p-4 rounded-2xl flex flex-col items-center">
+        {/* Title */}
+        <h1 className="text-4xl font-bold text-center">
           <span>&lt;Taala</span>
           <span className="text-green-600">Key</span>
           <span>/&gt;</span>
@@ -100,7 +87,8 @@ const Manager = () => {
           Your own password Manager
         </div>
 
-        <div className="flex flex-col space-y-2 p-2 w-full mx-2 opacity-100">
+        {/* Input Fields */}
+        <div className="flex flex-col space-y-2 p-2 w-full">
           <input
             type="text"
             name="url"
@@ -137,66 +125,78 @@ const Manager = () => {
           </div>
         </div>
 
+        {/* Save Button */}
         <button
           onClick={savePass}
-          className="bg-blue-950 rounded-2xl py-1 px-4 text-white  hover:bg-blue-800"
+          className="bg-blue-950 rounded-2xl py-1 px-4 text-white hover:bg-blue-800"
         >
-          <h1>Save Password</h1>
+          <h1>{editId ? "Update Password" : "Save Password"}</h1>
         </button>
+
+        {/* Password List */}
         <div className="mt-5 bg-amber-400 w-full rounded-2xl p-3 flex flex-col">
           <div className="text-xl font-bold">Your Passwords</div>
-          <div className="overflow-x-scroll">
-            {passwordArray.length != 0 ? (
-              <div>
-                <div className="flex flex-col">
-                  <table class="table">
-                    <thead>
-                      <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Url</th>
-                        <th scope="col">Username</th>
-                        <th scope="col">Password</th>
-                        <th scope="col">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {passwordArray.map((item, index) => {
-                        return (
-                          <tr key={index}>
-                            <th scope="row">{index + 1}</th>
-                            <td><a href={`https://${item.url}`} target="_blank">{item.url}</a></td>
-                            <td>{item.username}</td>
-                            <td>{item.password}</td>
-                            <td className="flex justify-center" >
-                              <lord-icon
-                                src="https://cdn.lordicon.com/exymduqj.json"
-                                trigger="hover"
-                                style={{
-                                  width: "25px",
-                                  height: "25px",
-                                  cursor: "pointer",
-                                }}
-                              ></lord-icon>
-                              <lord-icon
-                                src="https://cdn.lordicon.com/hwjcdycb.json"
-                                trigger="hover"
-                                style={{width:"25px",height:"25px"}}
-                                onClick={()=>deletepass(passwordArray._id)}
-                              ></lord-icon>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <h1>No passwords to show</h1>
-              </div>
-            )}
-          </div>
+          {passwordArray.length !== 0 ? (
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Url</th>
+                  <th>Username</th>
+                  <th>Password</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {passwordArray.map((item, index) => (
+                  <tr key={item.id}>
+                    <th>{index + 1}</th>
+                    <td>
+                      <a href={`https://${item.url}`} target="_blank" rel="noopener noreferrer">
+                        {item.url}
+                      </a>
+                    </td>
+                    <td>
+                      {item.username}
+                      <button
+                        className="ml-2 bg-gray-500 text-white px-2 py-1 rounded hover:bg-gray-700"
+                        onClick={() => copyToClipboard(item.username)}
+                      >
+                        Copy
+                      </button>
+                    </td>
+                    <td>
+                      {item.password}
+                      <button
+                        className="ml-2 bg-gray-500 text-white px-2 py-1 rounded hover:bg-gray-700"
+                        onClick={() => copyToClipboard(item.password)}
+                      >
+                        Copy
+                      </button>
+                    </td>
+                    <td className="flex space-x-2">
+                      {/* Edit Button */}
+                      <button
+                        onClick={() => editPass(item.id)}
+                        className="bg-green-500 px-2 py-1 rounded text-white hover:bg-green-700"
+                      >
+                        Edit
+                      </button>
+                      {/* Delete Button */}
+                      <button
+                        onClick={() => deletePass(item.id)}
+                        className="bg-red-500 px-2 py-1 rounded text-white hover:bg-red-700"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div>No passwords saved</div>
+          )}
         </div>
       </div>
     </>
