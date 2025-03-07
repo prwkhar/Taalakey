@@ -16,7 +16,8 @@ const passwordSchema = new Schema({
     },
     userid:{
         type: Schema.Types.ObjectId,
-        ref: "User"
+        ref: "User",
+        required: true
     }
 })
 

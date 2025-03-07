@@ -20,6 +20,6 @@ import router2 from "./routes/password.routes.js"
 
 //routes declaration
 app.use("/api/v1/users",router);
-app.use("/api/v1/password",router);
+app.use("/api/v1/password",router2);
 
 export {app}
